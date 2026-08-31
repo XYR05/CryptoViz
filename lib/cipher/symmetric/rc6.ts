@@ -1,4 +1,5 @@
 import type { CipherOptions, CipherResult, CipherStep } from '../types';
+import { CipherError, isCryptoVizError } from '../../utils/errors';
 
 /**
  * Rc6Options cipher-engine utility export.
@@ -130,15 +131,15 @@ export function assertHexLength(value: string, expectedLength: number, label: st
   const cleaned = cleanHex(value);
 
   if (!cleaned) {
-    throw new Error(`${label} is required.`);
+    throw new CipherError("INPUT_REQUIRED", `${label} is required.`);
   }
 
   if (!/^[A-F0-9]+$/.test(cleaned)) {
-    throw new Error(`${label} must contain only hexadecimal characters.`);
+    throw new CipherError("INVALID_INPUT", `${label} must contain only hexadecimal characters.`);
   }
 
   if (cleaned.length !== expectedLength) {
-    throw new Error(`${label} must be exactly ${expectedLength} hexadecimal characters.`);
+    throw new CipherError("INVALID_INPUT", `${label} must be exactly ${expectedLength} hexadecimal characters.`);
   }
 
   return cleaned;
@@ -148,19 +149,19 @@ function assertKeyHex(value: string): string {
   const cleaned = cleanHex(value);
 
   if (!cleaned) {
-    throw new Error("RC6 key is required.");
+    throw new CipherError("INVALID_KEY", "RC6 key is required.");
   }
 
   if (!/^[A-F0-9]+$/.test(cleaned)) {
-    throw new Error("RC6 key must contain only hexadecimal characters.");
+    throw new CipherError("INVALID_KEY", "RC6 key must contain only hexadecimal characters.");
   }
 
   if (cleaned.length % 2 !== 0) {
-    throw new Error("RC6 key must contain a whole number of bytes.");
+    throw new CipherError("INVALID_KEY", "RC6 key must contain a whole number of bytes.");
   }
 
   if (cleaned.length > 64) {
-    throw new Error("RC6 key must be 32 bytes or fewer.");
+    throw new CipherError("INVALID_KEY", "RC6 key must be 32 bytes or fewer.");
   }
 
   return cleaned;
@@ -440,7 +441,7 @@ export function traceRc6Encryption(plaintextHex: string, keyHex: string, options
 function resolveInput(input: Rc6CipherInput | string, explicitKey?: string, options?: Rc6Options, mode: "encrypt" | "decrypt" = "encrypt") {
   if (typeof input === "string") {
     if (!explicitKey) {
-      throw new Error("RC6 key is required.");
+      throw new CipherError("INVALID_KEY", "RC6 key is required.");
     }
 
     return {
@@ -454,7 +455,7 @@ function resolveInput(input: Rc6CipherInput | string, explicitKey?: string, opti
 
   const inputHex = input.input ?? input.text ?? input.plaintext ?? input.ciphertext;
   if (!inputHex) {
-    throw new Error("RC6 input text is required.");
+    throw new CipherError("INPUT_REQUIRED", "RC6 input text is required.");
   }
 
   return {
@@ -611,13 +612,13 @@ export const TEST_VECTORS = [
  */
 export function encrypt(input: string, key: string, options?: Rc6Options): CipherResult {
   if (!input) {
-    throw new Error('Input message is required.')
+    throw new CipherError('INPUT_REQUIRED', 'Input message is required.');
   }
   if (!key || key.length !== 32) {
-    throw new Error('Invalid key: RC6 requires a 128-bit key (32 hex characters).')
+    throw new CipherError('INVALID_KEY', 'Invalid key: RC6 requires a 128-bit key (32 hex characters).');
   }
   if (input.length % 32 !== 0 || !/^[0-9a-fA-F]+$/.test(input)) {
-    throw new Error('Input must be a valid hex string with length multiple of 32 hexadecimal characters.')
+    throw new CipherError('INVALID_INPUT', 'Input must be a valid hex string with length multiple of 32 hexadecimal characters.');
   }
   
   const numBlocks = input.length / 32
@@ -666,13 +667,13 @@ export function encrypt(input: string, key: string, options?: Rc6Options): Ciphe
  */
 export function decrypt(input: string, key: string, options?: Rc6Options): CipherResult {
   if (!input) {
-    throw new Error('Input message is required.')
+    throw new CipherError('INPUT_REQUIRED', 'Input message is required.');
   }
   if (!key || key.length !== 32) {
-    throw new Error('Invalid key: RC6 requires a 128-bit key (32 hex characters).')
+    throw new CipherError('INVALID_KEY', 'Invalid key: RC6 requires a 128-bit key (32 hex characters).');
   }
   if (input.length % 32 !== 0 || !/^[0-9a-fA-F]+$/.test(input)) {
-    throw new Error('Input must be a valid hex string with length multiple of 32 hexadecimal characters.')
+    throw new CipherError('INVALID_INPUT', 'Input must be a valid hex string with length multiple of 32 hexadecimal characters.');
   }
   
   const numBlocks = input.length / 32
@@ -695,4 +696,5 @@ export function decrypt(input: string, key: string, options?: Rc6Options): Ciphe
     durationMs: 0,
   }
 }
+
 
