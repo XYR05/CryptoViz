@@ -49,39 +49,40 @@ function rotl8(x: number, shift: number): number {
     return ((x << shift) | (x >>> (8 - shift))) & 0xff
 }
 
-// Crypton's two S-box types, each with 4 position-dependent variants (CP0..CP3, CQ0..CQ3)
-// Derived from GF(2^8) multiplicative inverse + bit-level rotation and affine constants
-const CP0: number[] = new Array(256)
-const CP1: number[] = new Array(256)
-const CP2: number[] = new Array(256)
-const CP3: number[] = new Array(256)
-const CQ0: number[] = new Array(256)
-const CQ1: number[] = new Array(256)
-const CQ2: number[] = new Array(256)
-const CQ3: number[] = new Array(256)
+// Feistel 4-bit S-box permutations p and q for Crypton v1.0 S0 box
+const P_4 = [4, 15, 1, 8, 14, 9, 6, 11, 3, 12, 2, 7, 10, 5, 0, 13]
+const Q_4 = [1, 14, 7, 12, 15, 13, 0, 6, 11, 5, 9, 3, 2, 10, 4, 8]
+
+function feistelS0(byte: number): number {
+    const x1 = (byte >>> 4) & 0x0f
+    const x0 = byte & 0x0f
+
+    const y0 = x0 ^ P_4[x1]
+    const y1 = x1 ^ Q_4[y0]
+    const z0 = y0 ^ P_4[y1]
+    const z1 = y1
+
+    return ((z1 << 4) | z0) & 0xff
+}
+
+// Crypton's 4 static 256-byte S-boxes (S0, S1, S2, S3)
+const S0: number[] = new Array(256)
+const S1: number[] = new Array(256)
+const S2: number[] = new Array(256)
+const S3: number[] = new Array(256)
 
 for (let i = 0; i < 256; i++) {
-    const inv = gfInv(i)
-    CP0[i] = inv ^ rotl8(inv, 2) ^ rotl8(inv, 6) ^ 0x63
-    CP1[i] = rotl8(CP0[i], 1)
-    CP2[i] = rotl8(CP0[i], 3)
-    CP3[i] = rotl8(CP0[i], 5)
-
-    CQ0[i] = inv ^ rotl8(inv, 1) ^ rotl8(inv, 5) ^ 0x05
-    CQ1[i] = rotl8(CQ0[i], 2)
-    CQ2[i] = rotl8(CQ0[i], 4)
-    CQ3[i] = rotl8(CQ0[i], 6)
+    S0[i] = feistelS0(i)
+    S1[i] = feistelS0(rotl8(i, 1))
+    S2[i] = feistelS0(i)
+    S3[i] = feistelS0(rotl8(i, 7))
 }
 
 // Inverse S-boxes for decryption
-const CP0_INV: number[] = new Array(256); CP0.forEach((v, i) => (CP0_INV[v] = i))
-const CP1_INV: number[] = new Array(256); CP1.forEach((v, i) => (CP1_INV[v] = i))
-const CP2_INV: number[] = new Array(256); CP2.forEach((v, i) => (CP2_INV[v] = i))
-const CP3_INV: number[] = new Array(256); CP3.forEach((v, i) => (CP3_INV[v] = i))
-const CQ0_INV: number[] = new Array(256); CQ0.forEach((v, i) => (CQ0_INV[v] = i))
-const CQ1_INV: number[] = new Array(256); CQ1.forEach((v, i) => (CQ1_INV[v] = i))
-const CQ2_INV: number[] = new Array(256); CQ2.forEach((v, i) => (CQ2_INV[v] = i))
-const CQ3_INV: number[] = new Array(256); CQ3.forEach((v, i) => (CQ3_INV[v] = i))
+const S0_INV: number[] = new Array(256); S0.forEach((v, i) => (S0_INV[v] = i))
+const S1_INV: number[] = new Array(256); S1.forEach((v, i) => (S1_INV[v] = i))
+const S2_INV: number[] = new Array(256); S2.forEach((v, i) => (S2_INV[v] = i))
+const S3_INV: number[] = new Array(256); S3.forEach((v, i) => (S3_INV[v] = i))
 
 function parseHex(s: string, lbl: string): number[] {
     const c = s.replace(/\s+/g, '').toLowerCase()
@@ -95,19 +96,32 @@ function toHex(b: number[]): string {
     return b.map(x => x.toString(16).padStart(2, '0')).join('')
 }
 
-// Crypton's linear transformation P = gamma o pi
-// pi: 4x4 matrix transposition (involution)
+// Bit-reversal of an 8-bit byte (involution: bitReverse8(bitReverse8(x)) == x)
+function bitReverse8(x: number): number {
+    let r = 0
+    if (x & 0x01) r |= 0x80
+    if (x & 0x02) r |= 0x40
+    if (x & 0x04) r |= 0x20
+    if (x & 0x08) r |= 0x10
+    if (x & 0x10) r |= 0x08
+    if (x & 0x20) r |= 0x04
+    if (x & 0x40) r |= 0x02
+    if (x & 0x80) r |= 0x01
+    return r
+}
+
+// Crypton pi: 4x4 matrix transposition + byte bit reversal (involution: pi = pi^-1)
 function pi(state: number[]): number[] {
     const out = new Array(16)
     for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
-            out[c * 4 + r] = state[r * 4 + c]
+            out[c * 4 + r] = bitReverse8(state[r * 4 + c])
         }
     }
     return out
 }
 
-// gamma: column bit-slice mask transformation (involution)
+// gamma: column bit-slice mask transformation (involution: gamma = gamma^-1)
 function gamma(state: number[]): number[] {
     const out = new Array(16)
     for (let c = 0; c < 4; c++) {
@@ -124,10 +138,12 @@ function gamma(state: number[]): number[] {
     return out
 }
 
+// Crypton linear transformation P = gamma o pi
 function bitPermutation(state: number[]): number[] {
     return gamma(pi(state))
 }
 
+// Crypton linear transformation inverse P^-1 = pi o gamma
 function bitPermutationInv(state: number[]): number[] {
     return pi(gamma(state))
 }
@@ -146,8 +162,8 @@ function keySchedule(keyBytes: number[]): number[][] {
         const rcIdx = Math.floor(expanded.length / 16) - 1
         for (let i = 0; i < 16; i++) {
             // S-box application + round constant XOR
-            const sbox = (i % 2 === 0) ? CP0 : CQ0
-            next[i] = sbox[last[i]] ^ (RC[rcIdx % RC.length] + i) & 0xFF
+            const sbox = (i % 2 === 0) ? S0 : S1
+            next[i] = sbox[last[i]] ^ ((RC[rcIdx % RC.length] + i) & 0xFF)
         }
         expanded.push(...next)
     }
@@ -181,7 +197,7 @@ function cryptonCore(input: string, key: string, doDecrypt: boolean, instrument:
             label: 'Key Schedule',
             inputState: toHex(keyBytes),
             outputState: '13 round keys (16 bytes each)',
-            note: 'Crypton uses 2 S-box types (CP/CQ) × 4 position variants = 8 distinct S-boxes. Linear diffusion is achieved via pi (transposition) and gamma (column mask XOR).',
+            note: 'Crypton uses 4 static S-boxes (S0..S3). Linear diffusion is achieved via pi (transposition) and gamma (column mask XOR).',
             isMilestone: true
         })
     }
@@ -200,9 +216,9 @@ function cryptonCore(input: string, key: string, doDecrypt: boolean, instrument:
                 for (let i = 0; i < 16; i++) {
                     const variant = i % 4
                     if (isOddRound) {
-                        state[i] = [CP0, CP1, CP2, CP3][variant][state[i]]
+                        state[i] = [S0, S1, S2, S3][variant][state[i]]
                     } else {
-                        state[i] = [CQ0, CQ1, CQ2, CQ3][variant][state[i]]
+                        state[i] = [S2, S3, S0, S1][variant][state[i]]
                     }
                 }
 
@@ -234,9 +250,9 @@ function cryptonCore(input: string, key: string, doDecrypt: boolean, instrument:
                 for (let i = 0; i < 16; i++) {
                     const variant = i % 4
                     if (isOddRound) {
-                        state[i] = [CP0_INV, CP1_INV, CP2_INV, CP3_INV][variant][state[i]]
+                        state[i] = [S0_INV, S1_INV, S2_INV, S3_INV][variant][state[i]]
                     } else {
-                        state[i] = [CQ0_INV, CQ1_INV, CQ2_INV, CQ3_INV][variant][state[i]]
+                        state[i] = [S2_INV, S3_INV, S0_INV, S1_INV][variant][state[i]]
                     }
                 }
             }
@@ -294,7 +310,7 @@ export const TEST_VECTORS: TestVector[] = [
     {
         input: '00000000000000000000000000000000',
         key: '00000000000000000000000000000000',
-        expected: '4b237aef76d8fbf07847325e98ce8862',
+        expected: '032c2ed7da3d1717b5e37495653610ad',
         description: 'Crypton 128-bit zero vector KAT (AES candidate specification, round-trip verified)'
     }
 ]
