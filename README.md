@@ -27,20 +27,52 @@ CryptoViz is a fully static Next.js 15 cybersecurity visualizer and cryptography
 Visit the production site at [Live Demo](https://crypto-viz-liart.vercel.app). Explore the interactive visualizer ciphers, read built-in cybersecurity documentation, and browse our curated learning resources list.
 
 ---
+
 ## Table of Contents
 
-- [Features](#features)
+- [Why CryptoViz?](#why-cryptoviz)
+- [Live Demo](#-live-demo)
+- [Features](#-features)
+  - [Cipher Visualizer](#1-cipher-visualizer)
+  - [Docs Module](#2-docs-module)
+  - [Resources Module](#3-resources-module)
 - [Architecture](#architecture)
+  - [High-Level Architecture Diagram](#high-level-architecture-diagram)
+  - [Project Structure](#project-structure)
+  - [Data Flow](#data-flow)
+  - [Key Architectural Decisions](#key-architectural-decisions)
+  - [SaaS Architecture (Additive Layer)](#saas-architecture-additive-layer)
 - [Tech Stack](#tech-stack)
 - [Browser Compatibility](#browser-compatibility)
-- [Getting Started](#getting-started)
-- [Commands](#commands-reference)
+  - [Supported Desktop Browsers](#supported-desktop-browsers)
+  - [Supported Mobile Browsers](#supported-mobile-browsers)
+  - [Required Browser Features](#required-browser-features)
+  - [Recommended Browser Versions](#recommended-browser-versions)
+  - [Unsupported or Partially Supported Browsers](#unsupported-or-partially-supported-browsers)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Step-by-Step Setup](#step-by-step-setup)
+- [Commands Reference](#commands-reference)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-- [License](#license)
-
----
+  - [`npm install` fails](#1-npm-install-fails)
+  - [`npm run build` fails](#2-npm-run-build-fails)
+  - [Development server does not start](#3-development-server-does-not-start)
+  - [Missing `.env.local` configuration](#4-missing-envlocal-configuration)
+  - [Node.js version mismatch](#5-nodejs-version-mismatch)
+  - [General Debugging Tips](#general-debugging-tips)
+- [Contributing](#-contributing)
+  - [Constants Naming Convention](#constants-naming-convention)
+- [Frequently Asked Questions (FAQ)](#-frequently-asked-questions-faq)
+  - [Which Node.js version is recommended?](#which-nodejs-version-is-recommended)
+  - [Does CryptoViz require a backend server?](#does-cryptoviz-require-a-backend-server)
+  - [Which browsers are officially supported?](#which-browsers-are-officially-supported)
+  - [Where are the cipher implementations located?](#where-are-the-cipher-implementations-located)
+  - [How do I add a new cipher?](#how-do-i-add-a-new-cipher)
+  - [How do I run tests before submitting a pull request?](#how-do-i-run-tests-before-submitting-a-pull-request)
+  - [Where can I report bugs or request new features?](#where-can-i-report-bugs-or-request-new-features)
+- [License](#-license)
+- [Acknowledgements](#-acknowledgements)
+- [Continuous Integration](#continuous-integration)
 
 ## ✨Features
 
