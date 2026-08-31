@@ -39,8 +39,8 @@ function modPow(base: bigint, exp: bigint, modVal: bigint): bigint {
 }
 
 // Toy Bilinear Pairing
-function pairing(P: bigint, Q: bigint): bigint {
-    return modPow(G_GEN, modBigInt(P * Q, Q), P)
+export function pairing(p1: bigint, p2: bigint): bigint {
+    return modPow(G_GEN, modBigInt(p1 * p2, Q), P)
 }
 
 // Toy Hash-to-Curve
@@ -179,5 +179,5 @@ export function decrypt(input: string, key: string, options: CipherOptions = {})
  * @see https://csrc.nist.gov/pubs/fips/46-3/final — FIPS 46-3.
  */
 export const TEST_VECTORS: TestVector[] = [
-    { input: '68656c6c6f', key: 'mock_pkg_pub,alice@example.com', expected: 'mock_ct', description: 'IBE Encrypt/Decrypt Round-trip' }
+    { input: '68656c6c6f', key: '5,alice@example.com', expected: '00000000075bcd151b161f1f1c', description: 'IBE Encrypt/Decrypt Round-trip' }
 ]
