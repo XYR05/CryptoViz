@@ -25,6 +25,7 @@ import { CipherError } from '../../utils/errors'
 import { modInverse } from './rsa'
 import type { CipherResult, CipherStep, CipherMetadata, CipherOptions, TestVector } from '../types'
 import { parseAsymmetricInput } from './asymmetricInput'
+import { cryptoRandomBytes } from '../../random/cryptoRandom'
 
 const METADATA: CipherMetadata = {
   name: 'Paillier',
@@ -54,6 +55,26 @@ function gcd(a: bigint, b: bigint): bigint {
 
 function lcm(a: bigint, b: bigint): bigint {
   return (a * b) / gcd(a, b)
+}
+
+function getRandomPaillierBlindingFactor(n: bigint): bigint {
+  const target = n - 1n
+  const bitLength = target.toString(2).length
+  const byteLength = Math.ceil(bitLength / 8)
+  const excessBits = byteLength * 8 - bitLength
+  const mask = excessBits > 0 ? (0xff >>> excessBits) : 0xff
+
+  let candidate: bigint
+  do {
+    const bytes = cryptoRandomBytes(byteLength)
+    bytes[0] &= mask
+    candidate = 0n
+    for (let i = 0; i < bytes.length; i++) {
+      candidate = (candidate << 8n) | BigInt(bytes[i])
+    }
+  } while (candidate < 1n || candidate >= n || gcd(candidate, n) !== 1n)
+
+  return candidate
 }
 
 function parsePublicKey(keyStr: string): PaillierPublicKey {
@@ -120,9 +141,7 @@ function paillierEncryptCore(
   // reproducible test vectors; real usage should always pick fresh randomness.
   let r = pub.r
   if (r === undefined) {
-    do {
-      r = BigInt(Math.floor(Math.random() * Number(pub.n - 1n)) + 1)
-    } while (gcd(r, pub.n) !== 1n)
+    r = getRandomPaillierBlindingFactor(pub.n)
   }
 
   const steps: CipherStep[] = []

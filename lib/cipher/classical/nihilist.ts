@@ -56,6 +56,12 @@ function numOf(square: string, ch: string): number {
 function charOfNum(square: string, n: number): string {
   const row = Math.floor(n / 10)
   const col = n % 10
+  if (row < 1 || row > 5 || col < 1 || col > 5) {
+    throw new CipherError(
+      'INVALID_CIPHERTEXT',
+      `Invalid Polybius square coordinate: ${n} (row ${row}, col ${col}). Polybius coordinates must have row and column values between 1 and 5.`
+    )
+  }
   return square[(row - 1) * 5 + (col - 1)]
 }
 
