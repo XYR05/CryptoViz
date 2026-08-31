@@ -8,9 +8,11 @@ import type {
   WorkerTraceBatchMessage,
   WorkerTraceStartMessage,
   WorkerTraceCompleteMessage,
-} from '@/types/worker'import type { WorkerPriority } from '@/lib/workers/pool'
+} from '@/types/worker'
+import type { WorkerPriority } from '@/lib/workers/pool'
 import type { WorkerProgressMessage } from '@/lib/workers/cipher-worker-protocol'
-import { CipherError, type CipherErrorCode } from '@/lib/utils/errors'import { decodeCipherSteps } from '@/lib/workers/stepTransfer'
+import { CipherError, type CipherErrorCode } from '@/lib/utils/errors'
+import { decodeCipherSteps } from '@/lib/workers/stepTransfer'
 
 const MAX_CACHE_SIZE = 200
 const WORKER_TIMEOUT_MS = 10000
@@ -148,7 +150,8 @@ const cipherErr =
         details: payload?.errorDetails,
         remediation: payload?.remediation,
       })
-    : new Error(errorMsg)        setError(errorMsg)
+    : new Error(errorMsg)
+        setError(errorMsg)
         reject(cipherErr)
       }
     }
@@ -277,7 +280,8 @@ activeRequestsRef.current.set(id, {
   onProgress: options?.onProgress,
   traceSteps: [],
   traceTotal: 0,
-})        setLoading(true)
+})
+        setLoading(true)
         setError(null)
         setProgress({ percent: 0, currentMilestone: 'Queued', jobId: id })
 

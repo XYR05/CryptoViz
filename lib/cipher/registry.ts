@@ -2282,7 +2282,9 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     securityStatus: 'recommended',
     options: [{ name: 'Disclosed Indices', id: 'disclosedIndices', type: 'text', default: '[0]' }]
   },
-  export function getCipherParameterSchema(
+]
+
+export function getCipherParameterSchema(
   cipherId: string,
 ): CipherParameterSchema | undefined {
   const definition = CIPHER_REGISTRY.find(
@@ -2295,4 +2297,3 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
 
   return buildCipherParameterSchema(definition);
 }
-];
