@@ -8,10 +8,15 @@
  */
 import type { CipherResult, CipherStep, CipherOptions, TestVector, CipherMetadata } from '../types'
 import { CipherError } from '../../utils/errors'
+// @ts-ignore
 import { RistrettoPoint } from '@noble/curves/ed25519'
+// @ts-ignore
 import { argon2id } from '@noble/hashes/argon2'
+// @ts-ignore
 import { sha512 } from '@noble/hashes/sha512'
+// @ts-ignore
 import { hkdf } from '@noble/hashes/hkdf'
+// @ts-ignore
 import { x25519 } from '@noble/curves/ed25519'
 
 const METADATA: CipherMetadata = {

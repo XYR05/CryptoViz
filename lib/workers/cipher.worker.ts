@@ -561,7 +561,7 @@ function toErrorDetails(error: unknown): {
   message: string;
 } {
   if (error instanceof CipherError) {
-    return { code: error.code, message: error.message };
+    return { code: error.code as any, message: error.message };
   }
 
   if (error instanceof Error) {

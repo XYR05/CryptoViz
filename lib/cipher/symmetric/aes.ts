@@ -671,6 +671,7 @@ function aesInstrumented(
       }
     }
 
+  }
   steps.push({
     index: steps.length,
     label: 'AES Encryption Output',

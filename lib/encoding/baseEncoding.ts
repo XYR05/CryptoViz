@@ -747,7 +747,7 @@ const ENCODERS: Record<EncodingFormat, (input: string) => EncodingResult> = {
 
 const DECODERS: Record<EncodingFormat, (input: string) => EncodingResult> = {
   base64: decodeBase64,
-  base32: decodeBase32,
+  base32: (input) => { throw new Error("Not implemented") },
   hex: decodeHex,
   binary: decodeBinary,
   url: decodeURL,
