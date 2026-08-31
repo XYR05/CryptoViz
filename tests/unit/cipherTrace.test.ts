@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CipherResult } from "../../lib/cipher/types";
+import { encrypt as caesarEncrypt } from "../../lib/cipher/classical/caesar";
 import {
   TRACE_SCHEMA_VERSION,
   createCipherTrace,
@@ -7,7 +8,6 @@ import {
   traceToCipherResult,
   validateCipherTrace,
 } from "../../lib/utils/cipherTrace";
-
 const result: CipherResult = {
   output: "Khoor",
   outputEncoding: "utf8",
@@ -196,5 +196,43 @@ describe("cipher trace serialization", () => {
       expect(firstStates).toEqual(secondStates);
       expect(firstStates).toEqual(result.steps);
     }
+  });
+
+  it("assigns identical traceIds for identical inputs across repeated executions", () => {
+    const runOnce = () => {
+      const cipherResult = caesarEncrypt("Hello", "3", { instrument: true });
+      return createCipherTrace({
+        cipherId: "caesar",
+        direction: "encrypt",
+        input: "Hello",
+        key: "3",
+        options: { instrument: true },
+        result: cipherResult,
+      });
+    };
+
+    const first = runOnce();
+    const second = runOnce();
+
+    expect(first.traceId).toBe(second.traceId);
+    expect(first.steps).toEqual(second.steps);
+    expect(first.output).toBe(second.output);
+    // Timestamps are allowed to differ; only the deterministic content matters.
+  });
+
+  it("assigns a different traceId when the key changes", () => {
+    const build = (key: string) => {
+      const cipherResult = caesarEncrypt("Hello", key, { instrument: true });
+      return createCipherTrace({
+        cipherId: "caesar",
+        direction: "encrypt",
+        input: "Hello",
+        key,
+        options: { instrument: true },
+        result: cipherResult,
+      });
+    };
+
+    expect(build("3").traceId).not.toBe(build("5").traceId);
   });
 });

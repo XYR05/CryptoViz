@@ -15,7 +15,8 @@ import {
 import { CipherError, validateInput } from "../utils/errors";
 import type { WorkerRequest, WorkerResponse } from "../../types/worker";
 import type { CipherResult } from "../cipher/types";
-import {
+import { CIPHER_REGISTRY } from "../cipher/registry";
+import { assertValidCipherParameters } from "../cipher/parameterValidation";import {
   encodeCipherSteps,
   WORKER_STEP_TRANSFER_THRESHOLD,
 } from "./stepTransfer";
@@ -526,6 +527,19 @@ const workerScope = self as unknown as Worker & typeof globalThis;
 
 let activeJobs = 0;
 
+const cancelledJobs = new Set<string>();
+
+function isJobCancelled(jobId: string): boolean {
+  return cancelledJobs.has(jobId);
+}
+
+function markJobCancelled(jobId: string): void {
+  cancelledJobs.add(jobId);
+}
+
+function clearJobCancellation(jobId: string): void {
+  cancelledJobs.delete(jobId);
+}
 function isWorkerRequest(value: unknown): value is WorkerRequest {
   if (!value || typeof value !== "object") return false;
 
@@ -557,11 +571,18 @@ function decodeWorkerRequest(data: WorkerRequestMessage): WorkerRequest {
 }
 
 function toErrorDetails(error: unknown): {
-  code?: import("../utils/errors").CipherErrorCode;
+  code?: import("../utils/errors").CipherErrorCode | "INVALID_WORKER_MESSAGE";
   message: string;
+  details?: unknown;
+  remediation?: string;
 } {
   if (error instanceof CipherError) {
-    return { code: error.code as any, message: error.message };
+    return {
+      code: error.code as any,
+      message: error.message,
+      details: error.details,
+      remediation: error.remediation,
+    };
   }
 
   if (error instanceof Error) {
@@ -570,7 +591,6 @@ function toErrorDetails(error: unknown): {
 
   return { message: String(error) };
 }
-
 workerScope.addEventListener(
   "message",
   async (event: MessageEvent<WorkerRequestMessage>) => {
@@ -578,10 +598,24 @@ workerScope.addEventListener(
     let requestId = "unknown";
     let jobStarted = false;
 
-    try {
-      const request = decodeWorkerRequest(event.data);
-      requestId = request.requestId;
+    if (
+      !(event.data instanceof Uint8Array) &&
+      (event.data?.type as any) === "CANCEL" &&
+      typeof event.data.jobId === "string"
+    ) {
+      markJobCancelled(event.data.jobId);
+      return;
+    }
 
+    try {      const request = decodeWorkerRequest(event.data);
+requestId = request.requestId;
+
+if (request.jobId && isJobCancelled(request.jobId)) {
+  throw new DOMException(
+    "The user aborted the request.",
+    "AbortError",
+  );
+}
       if (!isWorkerRequest(request)) {
         throw new CipherError(
           "INVALID_INPUT",
@@ -590,8 +624,18 @@ workerScope.addEventListener(
       }
 
       const { type, payload } = request;
-      const { cipherId, input, key, options } = payload;
+const { cipherId, input, key, options } = payload;
 
+const cipherDefinition = CIPHER_REGISTRY.find(
+  (definition) => definition.id === cipherId,
+);
+
+if (!cipherDefinition) {
+  throw new CipherError(
+    "ALGORITHM_UNSUPPORTED",
+    `Unsupported cipher ID: ${cipherId}`,
+  );
+}
       // The worker is a trust boundary too. Never rely solely on the UI hook
       // to enforce resource limits because callers can post directly to it.
       const limits = resolveWorkloadLimits("cipher", cipherId);
@@ -619,20 +663,39 @@ workerScope.addEventListener(
         throw new CipherError("INVALID_KEY", "Key must be a string.");
       }
 
-      if (options !== undefined &&
-          (typeof options !== "object" || options === null || Array.isArray(options))) {
-        throw new CipherError("INVALID_INPUT", "Cipher options must be an object.");
+      if (
+        options !== undefined &&
+        (typeof options !== "object" ||
+          options === null ||
+          Array.isArray(options))
+      ) {
+        throw new CipherError(
+          "INVALID_INPUT",
+          "Cipher options must be an object.",
+        );
       }
 
-      activeJobs += 1;
-      jobStarted = true;
+      assertValidCipherParameters(
+        cipherDefinition,
+        input,
+        key,
+        options ?? {},
+      );
+
+      activeJobs += 1;      jobStarted = true;
 
       const dispatcher = await getDispatcher(cipherId);
       const handler = payload.type === "encrypt" ? dispatcher.encrypt : dispatcher.decrypt;
-      const result = (await handler(input, key, options)) as CipherResult;
+const result = (await handler(input, key, options)) as CipherResult;
 
-      if (!result || typeof result !== "object") {
-        throw new CipherError(
+if (request.jobId && isJobCancelled(request.jobId)) {
+  throw new DOMException(
+    "The user aborted the request.",
+    "AbortError",
+  );
+}
+
+if (!result || typeof result !== "object") {        throw new CipherError(
           "INVALID_INPUT",
           "Cipher implementation returned an invalid result.",
         );
@@ -653,43 +716,82 @@ workerScope.addEventListener(
         );
       }
 
-      if (result.steps.length >= WORKER_STEP_TRANSFER_THRESHOLD) {
-        const stepsBuffer = encodeCipherSteps(result.steps);
-        const transferable = stepsBuffer.buffer as ArrayBuffer;
-        const response: WorkerResponse = {
-          requestId,
-          success: true,
-          payload: {
-            result: { ...result, steps: [] },
-            stepsBuffer: transferable,
-          },
-          timings: { durationMs },
-        };
+const batchSize =
+  typeof options?.traceBatchSize === "number"
+    ? Math.max(1, Math.floor(options.traceBatchSize))
+    : 32;
 
-        workerScope.postMessage(response, [transferable]);
-      } else {
-        const response: WorkerResponse = {
-          requestId,
-          success: true,
-          payload: { result },
-          timings: { durationMs },
-        };
+const traceSteps = result.steps ?? [];
 
-        workerScope.postMessage(response);
-      }
-    } catch (error: unknown) {
+workerScope.postMessage({
+  type: "TRACE_START",
+  requestId,
+  jobId: request.jobId,
+  totalSteps: traceSteps.length,
+});
+
+for (let offset = 0; offset < traceSteps.length; offset += batchSize) {
+  if (request.jobId && isJobCancelled(request.jobId)) {
+    throw new DOMException(
+      "The user aborted the request.",
+      "AbortError",
+    );
+  }
+
+  const batch = traceSteps.slice(offset, offset + batchSize);
+  const stepsBuffer = encodeCipherSteps(batch);
+  const transferable = stepsBuffer.buffer as ArrayBuffer;
+
+  workerScope.postMessage(
+    {
+      type: "TRACE_BATCH",
+      requestId,
+      jobId: request.jobId,
+      offset,
+      stepsBuffer: transferable,
+    },
+    [transferable],
+  );
+
+  await new Promise<void>((resolve) => {
+    const acknowledge = () => {
+      workerScope.removeEventListener("message", acknowledge);
+      resolve();
+    };
+
+    workerScope.addEventListener("message", acknowledge);
+  });
+}
+
+workerScope.postMessage({
+  type: "TRACE_COMPLETE",
+  requestId,
+  jobId: request.jobId,
+});
+
+const response: WorkerResponse = {
+  requestId,
+  success: true,
+  payload: {
+    result: { ...result, steps: [] },
+  },
+  timings: { durationMs },
+};
+
+workerScope.postMessage(response);    } catch (error: unknown) {
       const durationMs = performance.now() - startTime;
-      const { code, message } = toErrorDetails(error);
-
+const { code, message, details, remediation } =
+  toErrorDetails(error);
       const response: WorkerResponse = {
         requestId,
         success: false,
-        payload: {
-          error: message,
-          errorCode: code,
-          errorMessage: message,
-        },
-        timings: { durationMs },
+payload: {
+  error: message,
+  errorCode: code,
+  errorMessage: message,
+  errorDetails: details,
+  remediation,
+},        timings: { durationMs },
       };
 
       workerScope.postMessage(response);

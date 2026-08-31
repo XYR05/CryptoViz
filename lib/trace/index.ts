@@ -28,3 +28,14 @@ export {
   compressTrace,
   getTraceSize,
 } from './serialization';
+
+export {
+  compareExecutionTraces,
+  formatStateDiffSummary,
+} from './stateDiff';
+export type {
+  StateDiffResult,
+  StepDivergence,
+  FieldDifference,
+  ByteDifference,
+} from './stateDiff';

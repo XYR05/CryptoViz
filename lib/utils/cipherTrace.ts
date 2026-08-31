@@ -32,8 +32,15 @@ export const REDACTED_VALUE = "[redacted]" as const;
 
 export interface CipherTraceFile {
   schemaVersion: typeof TRACE_SCHEMA_VERSION;
-  cipherId: string;
-  direction: CipherDirection;
+
+  /**
+   * Deterministic identifier derived from the cipher, direction, input, key,
+   * options, and resulting steps/output — excluding volatile fields like
+   * timestamp and durationMs. Identical inputs always produce the same
+   * traceId, regardless of when or how many times the trace is generated.
+   */
+  traceId: string;
+  cipherId: string;  direction: CipherDirection;
   input: string;
   key: string;
   options: Record<string, string | number | boolean>;
@@ -276,8 +283,44 @@ function computeTraceIntegrityHash(
 }
 
 /**
- * Verifies a trace's integrityHash, if present. Traces created before this
- * field existed have no hash to check and are treated as valid for backward
+ * Computes a deterministic trace identifier from the values that define an
+ * execution (algorithm, config, input, key, and the resulting steps/output).
+ * Volatile fields such as timestamp and durationMs are intentionally
+ * excluded so identical inputs always produce the same traceId.
+ */
+function computeDeterministicTraceId(input: {
+  cipherId: string;
+  direction: CipherDirection;
+  rawInput: string;
+  rawKey: string;
+  rawOptions: Record<string, unknown>;
+  steps: CipherStep[];
+  output: string;
+  outputEncoding: Encoding;
+}): string {
+  const canonicalOptions = sanitizeOptions(input.rawOptions, "full");
+  const hashBytes = sha256(
+    new TextEncoder().encode(
+      canonicalStringify({
+        cipherId: input.cipherId,
+        direction: input.direction,
+        input: input.rawInput,
+        key: input.rawKey,
+        options: canonicalOptions,
+        steps: input.steps,
+        output: input.output,
+        outputEncoding: input.outputEncoding,
+      }),
+    ),
+  );
+  const hex = Array.from(hashBytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `${input.cipherId}-${hex.slice(0, 16)}`;
+}
+
+/**
+ * Verifies a trace's integrityHash, if present. Traces created before this * field existed have no hash to check and are treated as valid for backward
  * compatibility.
  */
 export function verifyCipherTraceIntegrity(trace: CipherTraceFile): boolean {
@@ -316,10 +359,21 @@ export function createCipherTrace({
 }): CipherTraceFile {
   const provenance = resolveTraceProvenance(result.metadata.provenance);
 
-  const traceWithoutHash: Omit<CipherTraceFile, "integrityHash"> = {
-    schemaVersion: TRACE_SCHEMA_VERSION,
+  const traceId = computeDeterministicTraceId({
     cipherId,
     direction,
+    rawInput: input,
+    rawKey: key,
+    rawOptions: options,
+    steps: result.steps,
+    output: result.output,
+    outputEncoding: result.outputEncoding,
+  });
+
+  const traceWithoutHash: Omit<CipherTraceFile, "integrityHash"> = {
+    schemaVersion: TRACE_SCHEMA_VERSION,
+    traceId,
+    cipherId,    direction,
     input,
     key: exportMode === "full" ? key : REDACTED_VALUE,
     options: sanitizeOptions(options, exportMode),
@@ -392,8 +446,17 @@ export function validateCipherTrace(
     };
   }
 
-  if (Number.isNaN(Date.parse(value.timestamp))) {
+  if (
+    value.traceId !== undefined &&
+    typeof value.traceId !== "string"
+  ) {
     return {
+      success: false,
+      error: "Trace identifier is invalid.",
+    };
+  }
+
+  if (Number.isNaN(Date.parse(value.timestamp))) {    return {
       success: false,
       error: "Trace timestamp is invalid.",
     };
@@ -502,13 +565,27 @@ export function validateCipherTrace(
       ? value.exportMode
       : "full";
 
+  const traceId =
+    typeof value.traceId === "string"
+      ? value.traceId
+      : computeDeterministicTraceId({
+          cipherId: value.cipherId,
+          direction: value.direction,
+          rawInput: value.input,
+          rawKey: value.key,
+          rawOptions: value.options,
+          steps: value.steps,
+          output: value.output,
+          outputEncoding: value.outputEncoding as Encoding,
+        });
+
   const trace: CipherTraceFile = {
     schemaVersion: TRACE_SCHEMA_VERSION,
+    traceId,
     cipherId: value.cipherId,
     direction: value.direction,
     input: value.input,
-    key: value.key,
-    options: sanitizeOptions(value.options, exportMode),
+    key: value.key,    options: sanitizeOptions(value.options, exportMode),
     output: value.output,
     outputEncoding: value.outputEncoding as Encoding,
     steps: value.steps,

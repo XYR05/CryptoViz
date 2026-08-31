@@ -42,3 +42,21 @@ describe('cipher step transfer protocol', () => {
     )
   })
 })
+it("processes trace data in bounded batches", () => {
+  const steps = Array.from({ length: 100 }, (_, index) => ({
+    ...step,
+    index,
+    label: `Round ${index + 1}`,
+  }));
+
+  const batchSize = 16;
+  const batches = [];
+
+  for (let offset = 0; offset < steps.length; offset += batchSize) {
+    batches.push(steps.slice(offset, offset + batchSize));
+  }
+
+  expect(batches.length).toBe(7);
+  expect(Math.max(...batches.map((batch) => batch.length))).toBe(16);
+  expect(batches.flat()).toEqual(steps);
+});

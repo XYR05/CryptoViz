@@ -25,7 +25,7 @@ export type CipherErrorCode =
   | "AUTH_TAG_MISMATCH"
   | "INVALID_AAD"
   | "INVALID_OPTION"
-  | "WORKER_TIMEOUT"
+  | "PARAMETER_VALIDATION_FAILED"  | "WORKER_TIMEOUT"
   | "WORKLOAD_INPUT_LIMIT"
   | "WORKLOAD_KEY_LIMIT"
   | "WORKLOAD_TRACE_LIMIT"
@@ -53,11 +53,11 @@ export function categorizeErrorCode(code: string): ErrorCategory {
   if (
     code.startsWith("OPTION") ||
     code.endsWith("_OPTION") ||
+    code === "PARAMETER_VALIDATION_FAILED" ||
     code.includes("PADDING") ||
     code.includes("IV") ||
     code.includes("AAD")
-  ) {
-    return "OPTION";
+  ) {    return "OPTION";
   }
   if (
     code.startsWith("ALGORITHM") ||

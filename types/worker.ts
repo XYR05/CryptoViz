@@ -46,6 +46,31 @@ export interface WorkerProgressMessage {
   currentMilestone: string
 }
 
+export interface WorkerTraceStartMessage {
+  type: 'TRACE_START'
+  requestId: string
+  jobId?: string
+  totalSteps: number
+}
+
+export interface WorkerTraceBatchMessage {
+  type: 'TRACE_BATCH'
+  requestId: string
+  jobId?: string
+  offset: number
+  stepsBuffer: ArrayBuffer
+}
+
+export interface WorkerTraceCompleteMessage {
+  type: 'TRACE_COMPLETE'
+  requestId: string
+  jobId?: string
+}
+
+export interface WorkerTraceAckMessage {
+  type: 'TRACE_ACK'
+  requestId: string
+}
 export interface WorkerResponsePayload {
   result?: CipherResult
   /** Serialized trace for large results, transferred as an ArrayBuffer. */
@@ -53,8 +78,9 @@ export interface WorkerResponsePayload {
   error?: string
   errorCode?: import('@/lib/utils/errors').CipherErrorCode | 'INVALID_WORKER_MESSAGE'
   errorMessage?: string
+  errorDetails?: unknown
+  remediation?: string
 }
-
 export interface WorkerErrorMessage {
   type: 'ERROR'
   jobId?: string
@@ -74,7 +100,8 @@ export interface WorkerResponseSuccess {
     error?: never
     errorCode?: never
     errorMessage?: never
-  }
+    errorDetails?: never
+    remediation?: never  }
   timings?: WorkerResponseTimings
 }
 
@@ -87,7 +114,8 @@ export interface WorkerResponseFailure {
     error?: string
     errorCode?: import('@/lib/utils/errors').CipherErrorCode | 'INVALID_WORKER_MESSAGE'
     errorMessage?: string
-  }
+    errorDetails?: unknown
+    remediation?: string  }
   timings?: WorkerResponseTimings
 }
 
@@ -96,9 +124,12 @@ export type WorkerResponse = WorkerResponseSuccess | WorkerResponseFailure
 export type WorkerProtocolMessage =
   | WorkerMessage
   | WorkerProgressMessage
+  | WorkerTraceStartMessage
+  | WorkerTraceBatchMessage
+  | WorkerTraceCompleteMessage
+  | WorkerTraceAckMessage
   | WorkerErrorMessage
   | WorkerResponse
-
 export interface WorkerResponseTimings {
   durationMs: number
 }

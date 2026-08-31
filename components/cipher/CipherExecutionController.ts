@@ -7,8 +7,8 @@ import { useCipherWorker } from "../../hooks/useCipherWorker";
 import { clampStepIndex } from "../../lib/utils/visualizerPermalink";
 import { resolveProvenance } from "../../lib/provenance/resolve";
 import type { DataProvenanceMetadata } from "../../lib/provenance";
-import { saveConversionHistory, type ConversionHistoryEntry } from "../../lib/utils/conversionHistory";
-
+import { saveConversionHistory, type ConversionHistoryEntry } from "@/lib/utils/conversionHistory";
+import { createVirtualizedCipherResult } from "@/lib/cipher/stepVirtualization";
 interface Params {
   cipher: CipherDefinition;
   input: string;
@@ -33,10 +33,12 @@ export function buildCipherWorkerOptions(
   demoMode: boolean,
 ): CipherOptions {
   const workerOptions: CipherOptions = {
-    instrument: true,
-    signal: undefined,
-    ...options,
-  };
+  instrument: true,
+  signal: undefined,
+  traceBufferSize: 32,
+  traceBatchSize: 32,
+  ...options,
+};
   if (["des", "3des", "aes", "camellia"].includes(cipherId)) {
     workerOptions.hexInput = typeof options.hexInput === "boolean" ? options.hexInput : true;
   }
@@ -60,10 +62,10 @@ export function useCipherExecutionController({ cipher, input, key, action, autoC
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async () => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    onError(null);
+abortRef.current?.abort();
+
+const controller = new AbortController();
+abortRef.current = controller;    onError(null);
 
     try {
       const workerOptions = buildCipherWorkerOptions(cipher.id, options, demoMode);
@@ -76,10 +78,20 @@ export function useCipherExecutionController({ cipher, input, key, action, autoC
       const provenance = isSimulated(cipher.id, demoMode)
         ? resolveProvenance({ provenance: "simulated", source: "CryptoViz educational simulation" } as DataProvenanceMetadata)
         : resolveProvenance(result.metadata?.provenance);
-      const nextResult: CipherResult = { ...result, metadata: { ...result.metadata, provenance } };
-      onResult(nextResult);
-      onStepRestore(clampStepIndex(0, nextResult.steps?.length ?? 0));
+const nextResult: CipherResult = {
+  ...result,
+  metadata: {
+    ...result.metadata,
+    provenance,
+  },
+};
 
+const visualizedResult = createVirtualizedCipherResult(nextResult);
+
+onResult(visualizedResult);
+onStepRestore(
+  clampStepIndex(0, visualizedResult.steps?.length ?? 0),
+);
       if (nextResult.output !== undefined) {
         const entry: ConversionHistoryEntry = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

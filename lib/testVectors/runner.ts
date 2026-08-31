@@ -99,3 +99,26 @@ export function formatMismatchDiagnostic(result: VectorRunResult): string {
     `  actual:    ${result.actualHex}`,
   ].join("\n");
 }
+
+/**
+ * Run conformance tests for an algorithm
+ * @param algorithm - Algorithm to test
+ * @param variant - Algorithm variant
+ * @param vectorPath - Path to vector JSON file
+ * @param executor - Executor for the algorithm
+ */
+export async function runConformanceTest(
+  algorithm: string,
+  variant: string,
+  vectorPath: string,
+  executor: any
+): Promise<any> {
+  const { ConformanceHarness } = await import('@/lib/testing/conformanceHarness');
+  
+  // Dynamically import vector file
+  const vectorModule = await import(vectorPath);
+  const vectorSet = vectorModule.default || vectorModule;
+
+  const harness = new ConformanceHarness(algorithm, variant, executor);
+  return harness.runTestVectorSet(vectorSet);
+}
