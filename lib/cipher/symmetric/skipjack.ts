@@ -78,9 +78,9 @@ function cleanHex(value: string): string {
  */
 export function assertSkipjackBlockHex(value: string): string {
   const cleaned = cleanHex(value);
-  if (!cleaned) throw new Error("Skipjack block is required.");
-  if (!/^[A-F0-9]+$/.test(cleaned)) throw new Error("Skipjack block must contain only hexadecimal characters.");
-  if (cleaned.length !== 16) throw new Error("Skipjack block must be exactly 16 hexadecimal characters.");
+  if (!cleaned) throw new CipherError("INPUT_REQUIRED", "Skipjack block is required.");
+  if (!/^[A-F0-9]+$/.test(cleaned)) throw new CipherError("INVALID_INPUT", "Skipjack block must contain only hexadecimal characters.");
+  if (cleaned.length !== 16) throw new CipherError("INVALID_INPUT", "Skipjack block must be exactly 16 hexadecimal characters.");
   return cleaned;
 }
 
@@ -95,9 +95,9 @@ export function assertSkipjackBlockHex(value: string): string {
  */
 export function assertSkipjackKeyHex(value: string): string {
   const cleaned = cleanHex(value);
-  if (!cleaned) throw new Error("Skipjack key is required.");
-  if (!/^[A-F0-9]+$/.test(cleaned)) throw new Error("Skipjack key must contain only hexadecimal characters.");
-  if (cleaned.length !== 20) throw new Error("Skipjack key must be exactly 80-bit (20 hexadecimal characters).");
+  if (!cleaned) throw new CipherError("INVALID_KEY", "Skipjack key is required.");
+  if (!/^[A-F0-9]+$/.test(cleaned)) throw new CipherError("INVALID_KEY", "Skipjack key must contain only hexadecimal characters.");
+  if (cleaned.length !== 20) throw new CipherError("INVALID_KEY", "Skipjack key must be exactly 80-bit (20 hexadecimal characters).");
   return cleaned;
 }
 
@@ -254,11 +254,30 @@ export function encrypt(input: string, key: string, options: CipherOptions = {})
   const start = performance.now()
   const plaintextHex = assertSkipjackBlockHex(input)
   const keyHex = assertSkipjackKeyHex(key)
-  const output = encryptSkipjackBlock(plaintextHex, keyHex)
+
+  let output: string
+  const steps: CipherStep[] = []
+
+  if (options.instrument) {
+    const trace = traceSkipjack(plaintextHex, keyHex, 'encrypt')
+    output = trace.outputHex
+    trace.rounds.forEach((r, idx) => {
+      steps.push({
+        index: idx,
+        label: `Round ${r.round} (${r.rule})`,
+        inputState: r.input,
+        outputState: r.output,
+        note: r.note,
+      })
+    })
+  } else {
+    output = encryptSkipjackBlock(plaintextHex, keyHex)
+  }
+
   return {
     output,
     outputEncoding: 'hex',
-    steps: [],
+    steps,
     metadata: METADATA,
     durationMs: performance.now() - start,
   }
@@ -280,11 +299,30 @@ export function decrypt(input: string, key: string, options: CipherOptions = {})
   const start = performance.now()
   const ciphertextHex = assertSkipjackBlockHex(input)
   const keyHex = assertSkipjackKeyHex(key)
-  const output = decryptSkipjackBlock(ciphertextHex, keyHex)
+
+  let output: string
+  const steps: CipherStep[] = []
+
+  if (options.instrument) {
+    const trace = traceSkipjack(ciphertextHex, keyHex, 'decrypt')
+    output = trace.outputHex
+    trace.rounds.forEach((r, idx) => {
+      steps.push({
+        index: idx,
+        label: `Round ${r.round} (${r.rule})`,
+        inputState: r.input,
+        outputState: r.output,
+        note: r.note,
+      })
+    })
+  } else {
+    output = decryptSkipjackBlock(ciphertextHex, keyHex)
+  }
+
   return {
     output,
     outputEncoding: 'hex',
-    steps: [],
+    steps,
     metadata: METADATA,
     durationMs: performance.now() - start,
   }
