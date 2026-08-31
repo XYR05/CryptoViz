@@ -91,7 +91,8 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
     const K = keyNonce.slice(0, 16)
     const N = keyNonce.slice(16, 32)
     const ad = parseHex((options.ad as string) || '', 'AD')
-    const ptBytes = parseHex(plaintext, 'plaintext')
+    const ptBytes = parseHex(plaintext, 'plaintext');
+    const outBytes = new Uint8Array(ptBytes.length + 16);
 
     const state = new Array(10).fill(0)
     const steps: CipherStep[] = []
@@ -139,7 +140,7 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
         outBytes[byteIdx] |= (ks << bitIdx)
     }
 
-    if (instrument) {
+    if (options.instrument) {
         steps.push({ index: 0, label: 'ACORN v3 AEAD', inputState: plaintext, outputState: toHex(outBytes), note: '293-bit NLFSR. Majority/choose combiners.', isMilestone: true })
     }
 

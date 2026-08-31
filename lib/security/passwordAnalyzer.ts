@@ -515,7 +515,7 @@ function buildSteps(
       category: "Patterns",
       description: `${patterns.length} pattern(s) detected`,
       result: patterns.map((p) => `${p.category}: "${p.pattern}"`).join(", "),
-      impact: patterns.some((p) => p.severity === "critical") ? "negative" : "warning",
+      impact: patterns.some((p) => p.severity === "critical") ? "negative" : "neutral",
     });
   }
 

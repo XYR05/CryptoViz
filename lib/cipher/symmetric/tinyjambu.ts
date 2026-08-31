@@ -72,7 +72,8 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
     const K = keyNonce.slice(0, 16)
     const N = keyNonce.slice(16, 28)
     const ad = parseHex((options.ad as string) || '', 'AD')
-    const ptBytes = parseHex(plaintext, 'plaintext')
+    const ptBytes = parseHex(plaintext, 'plaintext');
+    const outBytes = new Uint8Array(ptBytes.length + 16);
 
     const s = new Array(4).fill(0)
     const steps: CipherStep[] = []
@@ -133,7 +134,7 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
         outBytes[byteIdx] |= (ks << bitIdx)
     }
 
-    if (instrument) {
+    if (options.instrument) {
         steps.push({ index: 0, label: 'TinyJAMBU-128 AEAD', inputState: plaintext, outputState: toHex(outBytes), note: '128-bit NLFSR. 1024 init rounds, 640 steps per 32-bit chunk.', isMilestone: true })
     }
 

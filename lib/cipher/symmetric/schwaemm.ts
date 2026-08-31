@@ -97,7 +97,7 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
         for (let j = 0; j < 8; j++) {
             const ksWord = state[j]
             for (let k = 0; k < 4 && i + j * 4 + k < ptBytes.length; k++) {
-                ctBytes.push(u8(block[j * 4 + k] ^ ((ksWord >>> (24 - k * 8)) & 0xFF)))
+                ctBytes.push((block[j * 4 + k] ^ ((ksWord >>> (24 - k * 8)) & 0xFF)) & 0xFF)
             }
         }
 
@@ -153,7 +153,7 @@ export function decrypt(ciphertext: string, key: string, options: CipherOptions 
         for (let j = 0; j < 8; j++) {
             const ksWord = state[j]
             for (let k = 0; k < 4 && i + j * 4 + k < ctOnly.length; k++) {
-                const ptByte = u8(ctOnly[i + j * 4 + k] ^ ((ksWord >>> (24 - k * 8)) & 0xFF))
+                const ptByte = (ctOnly[i + j * 4 + k] ^ ((ksWord >>> (24 - k * 8)) & 0xFF) & 0xFF)
                 ptBytes.push(ptByte)
                 block[j * 4 + k] = ptByte // Absorb PLAINTEXT
             }

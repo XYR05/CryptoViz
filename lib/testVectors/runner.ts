@@ -111,9 +111,9 @@ export async function runConformanceTest(
   algorithm: string,
   variant: string,
   vectorPath: string,
-  executor: ConformanceExecutor
-): Promise<ConformanceSummary> {
-  const { ConformanceHarness, ConformanceSummary } = await import('@/lib/testing/conformanceHarness');
+  executor: any
+): Promise<any> {
+  const { ConformanceHarness } = await import('@/lib/testing/conformanceHarness');
   
   // Dynamically import vector file
   const vectorModule = await import(vectorPath);

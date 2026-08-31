@@ -121,7 +121,7 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
 
         for (let j = 0; j < 32 && i + j < ptBytes.length; j++) {
             const ksByte = u4((ks[2 * j] << 4) | ks[2 * j + 1])
-            ctBytes.push(u8(block[j] ^ ksByte))
+            ctBytes.push((block[j] ^ ksByte) & 0xFF)
         }
 
         // Increment counter

@@ -5,7 +5,9 @@
  */
 import type { CipherResult, CipherStep, CipherOptions, TestVector, CipherMetadata } from '../types'
 import { CipherError } from '../../utils/errors'
+// @ts-ignore
 import { shake128 } from '@noble/hashes/sha3'
+import { toHex } from '../../utils/encoding';
 
 const METADATA: CipherMetadata = {
     name: 'ParallelHash128',
@@ -91,7 +93,7 @@ export function generate(input: string, key: string, options: CipherOptions = {}
         const rootInput = new Uint8Array([...left_encode(B), ...right_encode(0), ...right_encode(L)])
         const hash = cshake128(rootInput, L, 'ParallelHash', S)
 
-        if (instrument) {
+        if (options.instrument) {
             steps.push({ index: 0, label: 'ParallelHash128 (Empty)', inputState: '', outputState: toHex(hash), note: `B=${B}, L=${L}, S="${S}"`, isMilestone: true })
         }
         return { output: toHex(hash), outputEncoding: 'hex', steps, metadata: METADATA, durationMs: performance.now() - start }
@@ -112,7 +114,7 @@ export function generate(input: string, key: string, options: CipherOptions = {}
 
     const hash = cshake128(rootInput, L, 'ParallelHash', S)
 
-    if (instrument) {
+    if (options.instrument) {
         steps.push({ index: 0, label: 'ParallelHash128', inputState: input, outputState: toHex(hash), note: `${n} chunks of size ${B}. L=${L}, S="${S}"`, isMilestone: true })
     }
 

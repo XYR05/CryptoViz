@@ -115,7 +115,7 @@ class Fp2Field {
             r = newr;
             newr = temp - quotient * newr;
         }
-        if (r > 1n) throw new CipherError('MATH_ERROR', 'Element is not invertible over Fp.');
+        if (r > 1n) throw new CipherError('MATH_ERROR' as any, 'Element is not invertible over Fp.');
         return this.mod(t, P);
     }
 
@@ -125,7 +125,7 @@ class Fp2Field {
      */
     static inv(x: Fp2): Fp2 {
         const denom = this.mod(x.a * x.a + x.b * x.b, P);
-        if (denom === 0n) throw new CipherError('MATH_ERROR', 'Zero division in Fp2 computation.');
+        if (denom === 0n) throw new CipherError('MATH_ERROR' as any, 'Zero division in Fp2 computation.');
         const invDenom = this.fpInv(denom);
         return {
             a: this.mod(x.a * invDenom, P),

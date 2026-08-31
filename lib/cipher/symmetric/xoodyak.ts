@@ -166,7 +166,7 @@ export function encrypt(plaintext: string, key: string, options: CipherOptions =
     const tag = new Uint8Array(16)
     for (let i = 0; i < 16; i++) tag[i] = state[i]
 
-    if (instrument) {
+    if (options.instrument) {
         steps.push({ index: 0, label: 'Xoodyak AEAD', inputState: plaintext, outputState: toHex([...ctBytes, ...tag]), note: 'Xoodoo permutation Cyclist mode. Constant-time tag verification.', isMilestone: true })
     }
 

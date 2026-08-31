@@ -440,7 +440,7 @@ const virtualizedResult = result;  const activeStep = result?.steps?.[currentSte
 steps={result.steps}
 stepMetadata={
   "stepMetadata" in result
-    ? result.stepMetadata
+    ? result.stepMetadata as any
     : undefined
 }                    currentStep={currentStep}
                     onStepChange={handleStepChange}

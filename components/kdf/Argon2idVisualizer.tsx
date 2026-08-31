@@ -28,6 +28,7 @@ export default function Argon2idVisualizer() {
     DEFAULT_ARGON2ID_PARAMS,
   );
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   const result = useMemo(() => {

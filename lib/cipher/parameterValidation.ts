@@ -162,7 +162,7 @@ function validateHex(
     return {
       parameter: rule.id,
       code: "INVALID_KEY_LENGTH",
-      message: `${rule.label} must be ${displayExpected(rule)}.`,
+      message: `${rule.label} must be ${displayExpected(rule as any)}.`,
       expected: rule.allowedLengthsBytes,
       actual: bytes,
     };
@@ -186,7 +186,7 @@ function validateScalar(
               ? "INPUT_REQUIRED"
               : "INVALID_OPTION",
         message: `${rule.label} is required.`,
-        expected: displayExpected(rule),
+        expected: displayExpected(rule as any),
       };
     }
 
@@ -885,7 +885,7 @@ function createGenericSchema(
       type:
         option.type === "select"
           ? "enum"
-          : option.type,
+          : option.type as any,
       choices: option.choices?.map((choice) => choice.value),
     });
   }

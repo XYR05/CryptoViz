@@ -12,8 +12,9 @@
  * key derivation pipeline: secret → HMAC → dynamic truncation → OTP.
  */
 
-import { hmac } from "@noble/hashes/hmac";
-import { sha1 } from "@noble/hashes/sha1";
+import { hmac } from "@noble/hashes/hmac.js";
+// @ts-ignore
+import { sha1 } from "@noble/hashes/sha1.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

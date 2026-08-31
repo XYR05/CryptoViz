@@ -78,7 +78,7 @@ export class ConformanceHarness {
       const result = await this.executor.execute(vector);
 
       // Validate final output
-      const outputValidation = this.validateOutput(vector.expectedOutput, result.output);
+      const outputValidation = this.validateOutput(vector.expectedOutput as any, result.output as any);
       if (outputValidation.failed) {
         return {
           testId: vector.testId,
@@ -172,7 +172,7 @@ export class ConformanceHarness {
         return {
           failed: true,
           step: stepKey,
-          error: 'Missing step',
+           
         };
       }
 

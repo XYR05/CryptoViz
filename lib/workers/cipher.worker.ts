@@ -578,7 +578,7 @@ function toErrorDetails(error: unknown): {
 } {
   if (error instanceof CipherError) {
     return {
-      code: error.code,
+      code: error.code as any,
       message: error.message,
       details: error.details,
       remediation: error.remediation,
@@ -600,7 +600,7 @@ workerScope.addEventListener(
 
     if (
       !(event.data instanceof Uint8Array) &&
-      event.data?.type === "CANCEL" &&
+      (event.data?.type as any) === "CANCEL" &&
       typeof event.data.jobId === "string"
     ) {
       markJobCancelled(event.data.jobId);

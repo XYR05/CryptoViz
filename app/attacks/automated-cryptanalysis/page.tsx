@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AutomatedCryptanalysisWorkbench from "../../../components/attacks/AutomatedCryptanalysisWorkbench";
+import { AutomatedCryptanalysisWorkbench } from "../../../components/attacks/AutomatedCryptanalysisWorkbench";
 import Navbar from "../../../components/layout/Navbar";
 import Footer from "../../../components/layout/footer";
 

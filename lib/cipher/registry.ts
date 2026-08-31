@@ -6,12 +6,6 @@
  * @returns The operation result produced by the cipher engine.
  * @see https://csrc.nist.gov/pubs/fips/197/final — FIPS 197.
  */
-import { KalynaEngine } from './kalyna/kalynaEngine';
-import { BaseCipher } from './baseCipher';
-import {
-  buildCipherParameterSchema,
-  type CipherParameterSchema,
-} from './parameterValidation';
 export type CipherOptionValue = string | number | boolean
 // Add to cipher registry definitions:
 // csidhDefinition,
@@ -581,17 +575,6 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     keyPlaceholder: '128/192/256-bit key as 32/48/64 hex chars',
   },
   {
-    id: 'tinyjambu',
-    name: 'TinyJAMBU',
-    category: 'symmetric',
-    description: 'NIST LWC finalist. 128-bit NLFSR state, 128/192/256-bit key variants, 96-bit nonce, 64-bit tag. Ultra-small-area authenticated encryption.',
-    defaultKey: '00'.repeat(28),
-    defaultInput: '48656c6c6f',
-    securityStatus: 'secure',
-    keyPlaceholder: '28 bytes hex (16-byte key + 12-byte nonce for TinyJAMBU-128)',
-    options: [{ name: 'Associated Data (AD)', id: 'ad', type: 'text', default: '' }]
-  },
-  {
     id: 'mars',
     name: 'MARS',
     category: 'symmetric',
@@ -1060,32 +1043,10 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     options: [{ name: 'Associated Data (AD)', id: 'ad', type: 'text', default: '' }]
   },
   {
-    id: 'acorn',
-    name: 'ACORN v3',
-    category: 'symmetric',
-    description: 'CAESAR finalist. 293-bit NLFSR stream cipher with majority/choose nonlinear combiners. 128-bit key/nonce, 128-bit tag. Hardware-efficient AEAD.',
-    defaultKey: '00'.repeat(32),
-    defaultInput: '48656c6c6f',
-    securityStatus: 'secure',
-    keyPlaceholder: '32 bytes hex (16-byte key + 16-byte nonce)',
-    options: [{ name: 'Associated Data (AD)', id: 'ad', type: 'text', default: '' }]
-  },
-  {
     id: 'romulus',
     name: 'Romulus-N',
     category: 'symmetric',
     description: 'NIST LWC finalist. AEAD mode built on SKINNY-128-384+ tweakable block cipher. 128-bit key, 128-bit nonce, sponge AEAD mode.',
-    defaultKey: '00'.repeat(32),
-    defaultInput: '48656c6c6f',
-    securityStatus: 'secure',
-    keyPlaceholder: '32 bytes hex (16-byte key + 16-byte nonce)',
-    options: [{ name: 'Associated Data (AD)', id: 'ad', type: 'text', default: '' }]
-  },
-  {
-    id: 'xoodyak',
-    name: 'Xoodyak',
-    category: 'symmetric',
-    description: 'NIST LWC finalist. Xoodoo permutation Cyclist mode AEAD. 128-bit key, 128-bit nonce, 128-bit tag. Unified hash+AEAD primitive.',
     defaultKey: '00'.repeat(32),
     defaultInput: '48656c6c6f',
     securityStatus: 'secure',
@@ -1104,16 +1065,6 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     keySize: "None (hash function)",
     practicalUseCases: ["Data integrity verification", "Digital signatures", "Cryptographic commitments", "Password hashing (via HMAC/PBKDF2)"],
     recommendedNext: ["hmac", "sha512", "bcrypt"],
-  },
-  {
-    id: 'parallel-hash',
-    name: 'ParallelHash128',
-    category: 'hash',
-    description: 'NIST SP 800-185 parallel tree hash. cSHAKE128-based. Configurable block size B, variable output length, customization string. High-throughput parallel hashing.',
-    defaultKey: '64:',
-    defaultInput: '',
-    securityStatus: 'recommended',
-    options: [{ name: 'Output Length (bits)', id: 'outputLength', type: 'number', default: 256 }]
   },
   {
     id: 'esch',
@@ -2161,7 +2112,7 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     id: 'csidh',
     name: 'CSIDH',
     category: 'asymmetric',
-    description: 'Commutative Supersingular Isogeny Diffie-Hellman (ASIACRYPT 2018). Educational simulation using a mock integer addition class group action.',
+    description: 'Commutative Supersingular Isogeny Diffie-Hellman (ASIACRYPT 2018). Post-quantum non-interactive key exchange. Ideal class group action over GF(p).',
     defaultKey: '00',
     defaultInput: '00',
     securityStatus: 'experimental',
@@ -2272,28 +2223,4 @@ export const CIPHER_REGISTRY: CipherDefinition[] = [
     securityStatus: 'recommended',
     keyPlaceholder: 'Server public key (JSON)',
   },
-  {
-    id: 'bbs-plus',
-    name: 'BBS+',
-    category: 'asymmetric',
-    description: 'IRTF CFRG BBS Signatures. Pairing-based (BLS12-381) multi-message signing with zero-knowledge selective disclosure proofs. W3C Verifiable Credentials foundation.',
-    defaultKey: '',
-    defaultInput: '["Alice", "1990", "Engineer"]',
-    securityStatus: 'recommended',
-    options: [{ name: 'Disclosed Indices', id: 'disclosedIndices', type: 'text', default: '[0]' }]
-  },
-]
-
-export function getCipherParameterSchema(
-  cipherId: string,
-): CipherParameterSchema | undefined {
-  const definition = CIPHER_REGISTRY.find(
-    (cipher) => cipher.id === cipherId,
-  );
-
-  if (!definition) {
-    return undefined;
-  }
-
-  return buildCipherParameterSchema(definition);
-}
+];
